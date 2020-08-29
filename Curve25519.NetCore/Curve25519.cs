@@ -19,11 +19,34 @@ namespace Curve25519.NetCore
 {
     public class Curve25519
     {
+        /// <summary>
+        /// Smallest multiple of the order that's >= 2^255
+        /// </summary>
+        private readonly byte[] _orderTimes8 =
+        {
+            104, 159, 174, 231,
+            210, 24, 147, 192,
+            178, 230, 188, 23,
+            245, 206, 247, 166,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 128
+        };
+
+        /// <summary>
+        /// Constant 1/(2Gy)
+        /// </summary>
+        private readonly Long10 _baseR2Y = new Long10(
+            5744, 8160848, 4790893, 13779497, 35730846,
+            12541209, 49101323, 30047407, 40071253, 6226132
+        );
+
         /* key size */
         public const int KeySize = 32;
 
         /* group order (a prime near 2^252+2^124) */
-        private static readonly byte[] Order =
+        private readonly byte[] _order =
         {
             237, 211, 245, 92,
             26, 99, 18, 88,
@@ -41,7 +64,7 @@ namespace Curve25519.NetCore
         /// Private key clamping (inline, for performance)
         /// </summary>
         /// <param name="key">[out] 32 random bytes</param>
-        public static void ClampPrivateKeyInline(byte[] key)
+        public void ClampPrivateKeyInline(byte[] key)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             if (key.Length != 32) throw new ArgumentException(
@@ -56,7 +79,7 @@ namespace Curve25519.NetCore
         /// Private key clamping
         /// </summary>
         /// <param name="rawKey">[out] 32 random bytes</param>
-        public static byte[] ClampPrivateKey(byte[] rawKey)
+        public byte[] ClampPrivateKey(byte[] rawKey)
         {
             if (rawKey == null) throw new ArgumentNullException(nameof(rawKey));
             if (rawKey.Length != 32) throw new ArgumentException(
@@ -76,7 +99,7 @@ namespace Curve25519.NetCore
         /// Creates a random private key
         /// </summary>
         /// <returns>32 random bytes that are clamped to a suitable private key</returns>
-        public static byte[] CreateRandomPrivateKey()
+        public byte[] CreateRandomPrivateKey()
         {
             var privateKey = new byte[32];
             using var rng = new SecureRandom.NetCore.SecureRandom(20);
@@ -90,7 +113,7 @@ namespace Curve25519.NetCore
         /// Generates the public key out of the clamped private key
         /// </summary>
         /// <param name="privateKey">private key (must use ClampPrivateKey first!)</param>
-        public static byte[] GetPublicKey(byte[] privateKey)
+        public byte[] GetPublicKey(byte[] privateKey)
         {
             var publicKey = new byte[32];
 
@@ -102,7 +125,7 @@ namespace Curve25519.NetCore
         /// Generates signing key out of the clamped private key
         /// </summary>
         /// <param name="privateKey">private key (must use ClampPrivateKey first!)</param>
-        public static byte[] GetSigningKey(byte[] privateKey)
+        public byte[] GetSigningKey(byte[] privateKey)
         {
             var signingKey = new byte[32];
             var publicKey = new byte[32];
@@ -117,7 +140,7 @@ namespace Curve25519.NetCore
         /// <param name="privateKey">[in] your private key for key agreement</param>
         /// <param name="peerPublicKey">[in] peer's public key</param>
         /// <returns>shared secret (needs hashing before use)</returns>
-        public static byte[] GetSharedSecret(byte[] privateKey, byte[] peerPublicKey)
+        public byte[] GetSharedSecret(byte[] privateKey, byte[] peerPublicKey)
         {
             var sharedSecret = new byte[32];
 
@@ -157,7 +180,7 @@ namespace Curve25519.NetCore
 
         /********************* radix 2^8 math *********************/
 
-        private static void Copy32(byte[] source, byte[] destination)
+        private void Copy32(byte[] source, byte[] destination)
         {
             Array.Copy(source, 0, destination, 0, 32);
         }
@@ -166,7 +189,7 @@ namespace Curve25519.NetCore
         /* n is the size of x */
         /* n+m is the size of p and q */
 
-        private static int MultiplyArraySmall(byte[] p, byte[] q, int m, byte[] x, int n, int z)
+        private int MultiplyArraySmall(byte[] p, byte[] q, int m, byte[] x, int n, int z)
         {
             var v = 0;
             for (var i = 0; i < n; ++i)
@@ -182,7 +205,7 @@ namespace Curve25519.NetCore
          * x is size 32, y is size t, p is size 32+t
          * y is allowed to overlap with p+32 if you don't care about the upper half  */
 
-        private static void MultiplyArray32(byte[] p, byte[] x, byte[] y, int t, int z)
+        private void MultiplyArray32(byte[] p, byte[] x, byte[] y, int t, int z)
         {
             const int n = 31;
             var w = 0;
@@ -203,7 +226,7 @@ namespace Curve25519.NetCore
          * requires t > 0 && d[t-1] != 0
          * requires that r[-1] and d[-1] are valid memory locations
          * q may overlap with r+t */
-        private static void DivMod(byte[] q, byte[] r, int n, byte[] d, int t)
+        private void DivMod(byte[] q, byte[] r, int n, byte[] d, int t)
         {
             var rn = 0;
             var dt = ((d[t - 1] & 0xFF) << 8);
@@ -228,7 +251,7 @@ namespace Curve25519.NetCore
             r[t - 1] = (byte)rn;
         }
 
-        private static int GetNumSize(byte[] num, int maxSize)
+        private int GetNumSize(byte[] num, int maxSize)
         {
             for (var i = maxSize; i >= 0; i++)
             {
@@ -245,7 +268,7 @@ namespace Curve25519.NetCore
         /// <param name="a">requires that a[-1] and b[-1] are valid memory locations</param>
         /// <param name="b">requires that a[-1] and b[-1] are valid memory locations</param>
         /// <returns>Also, the returned buffer contains the inverse of a mod b as 32-byte signed.</returns>
-        private static byte[] Egcd32(byte[] x, byte[] y, byte[] a, byte[] b)
+        private byte[] Egcd32(byte[] x, byte[] y, byte[] a, byte[] b)
         {
             var bn = 32;
             int i;
@@ -281,7 +304,7 @@ namespace Curve25519.NetCore
 
         /* Convert to internal format from little-endian byte format */
 
-        private static void Unpack(Long10 x, byte[] m)
+        private void Unpack(Long10 x, byte[] m)
         {
             x.N0 = ((m[0] & 0xFF)) | ((m[1] & 0xFF)) << 8 |
                    (m[2] & 0xFF) << 16 | ((m[3] & 0xFF) & 3) << 24;
@@ -308,7 +331,7 @@ namespace Curve25519.NetCore
         /// <summary>
         /// Check if reduced-form input >= 2^255-19
         /// </summary>
-        private static bool IsOverflow(Long10 x)
+        private bool IsOverflow(Long10 x)
         {
             return (
                 ((x.N0 > P26 - 19)) &
@@ -323,7 +346,7 @@ namespace Curve25519.NetCore
          *     set --  if input in range 0 .. P25
          * If you're unsure if the number is reduced, first multiply it by 1.  */
 
-        private static void Pack(Long10 x, byte[] m)
+        private void Pack(Long10 x, byte[] m)
         {
             var ld = (IsOverflow(x) ? 1 : 0) - ((x.N9 < 0) ? 1 : 0);
             var ud = ld * -(P25 + 1);
@@ -373,7 +396,7 @@ namespace Curve25519.NetCore
         /// <summary>
         /// Copy a number
         /// </summary>
-        private static void Copy(Long10 numOut, Long10 numIn)
+        private void Copy(Long10 numOut, Long10 numIn)
         {
             numOut.N0 = numIn.N0;
             numOut.N1 = numIn.N1;
@@ -390,7 +413,7 @@ namespace Curve25519.NetCore
         /// <summary>
         /// Set a number to value, which must be in range -185861411 .. 185861411
         /// </summary>
-        private static void Set(Long10 numOut, int numIn)
+        private void Set(Long10 numOut, int numIn)
         {
             numOut.N0 = numIn;
             numOut.N1 = 0;
@@ -407,7 +430,7 @@ namespace Curve25519.NetCore
         /* Add/subtract two numbers.  The inputs must be in reduced form, and the 
          * output isn't, so to do another addition or subtraction on the output, 
          * first multiply it by one to reduce it. */
-        private static void Add(Long10 xy, Long10 x, Long10 y)
+        private void Add(Long10 xy, Long10 x, Long10 y)
         {
             xy.N0 = x.N0 + y.N0;
             xy.N1 = x.N1 + y.N1;
@@ -421,7 +444,7 @@ namespace Curve25519.NetCore
             xy.N9 = x.N9 + y.N9;
         }
 
-        private static void Sub(Long10 xy, Long10 x, Long10 y)
+        private void Sub(Long10 xy, Long10 x, Long10 y)
         {
             xy.N0 = x.N0 - y.N0;
             xy.N1 = x.N1 - y.N1;
@@ -440,7 +463,7 @@ namespace Curve25519.NetCore
         /// The output is in reduced form, the input x need not be.  x and xy may point
         /// to the same buffer.
         /// </summary>
-        private static void MulSmall(Long10 xy, Long10 x, long y)
+        private void MulSmall(Long10 xy, Long10 x, long y)
         {
             var temp = (x.N8 * y);
             xy.N8 = (temp & ((1 << 26) - 1));
@@ -470,7 +493,7 @@ namespace Curve25519.NetCore
         /// <summary>
         /// Multiply two numbers. The output is in reduced form, the inputs need not be.
         /// </summary>
-        private static void Multiply(Long10 xy, Long10 x, Long10 y)
+        private void Multiply(Long10 xy, Long10 x, Long10 y)
         {
             /* sahn0:
              * Using local variables to avoid class access.
@@ -557,7 +580,7 @@ namespace Curve25519.NetCore
         /// <summary>
         /// Square a number.  Optimization of  Multiply(x2, x, x)
         /// </summary>
-        private static void Square(Long10 xsqr, Long10 x)
+        private void Square(Long10 xsqr, Long10 x)
         {
             long
                 x0 = x.N0,
@@ -616,7 +639,7 @@ namespace Curve25519.NetCore
         /// be.  Simply calculates  y = x^(p-2)  so it's not too fast. */
         /// When sqrtassist is true, it instead calculates y = x^((p-5)/8)
         /// </summary>
-        private static void Reciprocal(Long10 y, Long10 x, bool sqrtAssist)
+        private void Reciprocal(Long10 y, Long10 x, bool sqrtAssist)
         {
             Long10
                 t0 = new Long10(),
@@ -703,7 +726,7 @@ namespace Curve25519.NetCore
         /// Checks if x is "negative", requires reduced input
         /// </summary>
         /// <param name="x">must be reduced input</param>
-        private static int IsNegative(Long10 x)
+        private int IsNegative(Long10 x)
         {
             return (int)(((IsOverflow(x) | (x.N9 < 0)) ? 1 : 0) ^ (x.N0 & 1));
         }
@@ -715,7 +738,7 @@ namespace Curve25519.NetCore
         /* t1 = ax + az
          * t2 = ax - az  */
 
-        private static void MontyPrepare(Long10 t1, Long10 t2, Long10 ax, Long10 az)
+        private void MontyPrepare(Long10 t1, Long10 t2, Long10 ax, Long10 az)
         {
             Add(t1, ax, az);
             Sub(t2, ax, az);
@@ -728,7 +751,7 @@ namespace Curve25519.NetCore
          *  X(P-Q) = dx
          * clobbers t1 and t2, preserves t3 and t4  */
 
-        private static void MontyAdd(Long10 t1, Long10 t2, Long10 t3, Long10 t4, Long10 ax, Long10 az, Long10 dx)
+        private void MontyAdd(Long10 t1, Long10 t2, Long10 t3, Long10 t4, Long10 ax, Long10 az, Long10 dx)
         {
             Multiply(ax, t2, t3);
             Multiply(az, t1, t4);
@@ -744,7 +767,7 @@ namespace Curve25519.NetCore
          *  X(Q) = (t3+t4)/(t3-t4)
          * clobbers t1 and t2, preserves t3 and t4  */
 
-        private static void MontyDouble(Long10 t1, Long10 t2, Long10 t3, Long10 t4, Long10 bx, Long10 bz)
+        private void MontyDouble(Long10 t1, Long10 t2, Long10 t3, Long10 t4, Long10 bx, Long10 bz)
         {
             Square(t1, t3);
             Square(t2, t4);
@@ -761,7 +784,7 @@ namespace Curve25519.NetCore
         /// <param name="y2">output</param>
         /// <param name="x">X</param>
         /// <param name="temp">temporary</param>
-        private static void CurveEquationInline(Long10 y2, Long10 x, Long10 temp)
+        private void CurveEquationInline(Long10 y2, Long10 x, Long10 temp)
         {
             Square(temp, x);
             MulSmall(y2, x, 486662);
@@ -773,7 +796,7 @@ namespace Curve25519.NetCore
         /// <summary>
         /// P = kG   and  s = sign(P)/k
         /// </summary>
-        private static void Core(byte[] publicKey, byte[] signingKey, byte[] privateKey, byte[] peerPublicKey)
+        private void Core(byte[] publicKey, byte[] signingKey, byte[] privateKey, byte[] peerPublicKey)
         {
             if (publicKey == null) throw new ArgumentNullException(nameof(publicKey));
             if (publicKey.Length != 32) throw new ArgumentException(
@@ -851,11 +874,11 @@ namespace Curve25519.NetCore
                 Multiply(dx, t2, t3); /* dx = t2 (Px - Gx)^2  */
                 Sub(dx, dx, t1); /* dx = t2 (Px - Gx)^2 - Py^2  */
                 dx.N0 -= 39420360; /* dx = t2 (Px - Gx)^2 - Py^2 - Gy^2  */
-                Multiply(t1, dx, BaseR2Y); /* t1 = -Py  */
+                Multiply(t1, dx, _baseR2Y); /* t1 = -Py  */
                 if (IsNegative(t1) != 0) /* sign is 1, so just copy  */
                     Copy32(privateKey, signingKey);
                 else /* sign is -1, so negate  */
-                    MultiplyArraySmall(signingKey, OrderTimes8, 0, privateKey, 32, -1);
+                    MultiplyArraySmall(signingKey, _orderTimes8, 0, privateKey, 32, -1);
 
                 /* reduce s mod q
                  * (is this needed?  do it just in case, it's fast anyway) */
@@ -865,34 +888,11 @@ namespace Curve25519.NetCore
                 var temp1 = new byte[32];
                 var temp2 = new byte[64];
                 var temp3 = new byte[64];
-                Copy32(Order, temp1);
+                Copy32(_order, temp1);
                 Copy32(Egcd32(temp2, temp3, signingKey, temp1), signingKey);
                 if ((signingKey[31] & 0x80) != 0)
-                    MultiplyArraySmall(signingKey, signingKey, 0, Order, 32, 1);
+                    MultiplyArraySmall(signingKey, signingKey, 0, _order, 32, 1);
             }
         }
-
-        /// <summary>
-        /// Smallest multiple of the order that's >= 2^255
-        /// </summary>
-        private static readonly byte[] OrderTimes8 =
-        {
-            104, 159, 174, 231,
-            210, 24, 147, 192,
-            178, 230, 188, 23,
-            245, 206, 247, 166,
-            0, 0, 0, 0,
-            0, 0, 0, 0,
-            0, 0, 0, 0,
-            0, 0, 0, 128
-        };
-
-        /// <summary>
-        /// Constant 1/(2Gy)
-        /// </summary>
-        private static readonly Long10 BaseR2Y = new Long10(
-            5744, 8160848, 4790893, 13779497, 35730846,
-            12541209, 49101323, 30047407, 40071253, 6226132
-            );
     }
 }
