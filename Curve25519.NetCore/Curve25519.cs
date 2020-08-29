@@ -1,4 +1,4 @@
-﻿/* Refactored for .NET Core, and SecureRandom.NetCore to 'help' with timing issues by Timothy D Meadows II, 28/08/2020 */
+﻿/* Refactored for .NET Core, and SecureRandom.NetCore to 'patch' with timing issues by Timothy D Meadows II, 28/08/2020 */
 
 /* Ported parts from Java to C# and refactored by Hans Wolff, 17/09/2013 */
 
