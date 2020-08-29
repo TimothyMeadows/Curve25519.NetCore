@@ -1,7 +1,7 @@
 # Curve25519.NetCore
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![nuget](https://img.shields.io/nuget/v/Curve25519.NetCore.svg)](https://www.nuget.org/packages/Curve25519.NetCore/)
 
-An elliptic curve offering 128 bits of security and designed for use with the elliptic curve Diffie–Hellman (ECDH) key agreement scheme. It is one of the fastest ECC curves and is not covered by any known patents.
+An elliptic curve offering 128 bits of security and designed for use with the elliptic curve Diffie–Hellman (ECDH) key agreement scheme. It is one of the fastest ECC curves and is not covered by any known patents. Depends on [SecureRandom.NetCore](https://github.com/TimothyMeadows/SecureRandom.NetCore)
 
 # Install
 
