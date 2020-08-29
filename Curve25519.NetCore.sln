@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30128.74
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Curve25519.NetCore", "Curve25519.NetCore\Curve25519.NetCore.csproj", "{EC0140FA-6D36-4308-9F10-FBA20E62A850}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Curve25519.NetCore.Examples", "Curve25519.NetCore.Examples\Curve25519.NetCore.Examples.csproj", "{5F638981-523B-4172-8E6D-56747C26D8CC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EC0140FA-6D36-4308-9F10-FBA20E62A850}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC0140FA-6D36-4308-9F10-FBA20E62A850}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC0140FA-6D36-4308-9F10-FBA20E62A850}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC0140FA-6D36-4308-9F10-FBA20E62A850}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F638981-523B-4172-8E6D-56747C26D8CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F638981-523B-4172-8E6D-56747C26D8CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F638981-523B-4172-8E6D-56747C26D8CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F638981-523B-4172-8E6D-56747C26D8CC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FA6CC22A-45DA-49C6-8BA9-4795201AE717}
+	EndGlobalSection
+EndGlobal
