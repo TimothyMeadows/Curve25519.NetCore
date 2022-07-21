@@ -253,7 +253,7 @@ namespace Curve25519.NetCore
 
         private int GetNumSize(byte[] num, int maxSize)
         {
-            for (var i = maxSize; i >= 0; i++)
+            for (var i = maxSize; i >= 0; i--)
             {
                 if (num[i] == 0) return i + 1;
             }
