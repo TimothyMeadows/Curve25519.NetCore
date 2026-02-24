@@ -14,6 +14,8 @@
  */
 
 using System;
+using System.Runtime.Intrinsics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
 namespace Curve25519.NetCore
@@ -219,7 +221,25 @@ namespace Curve25519.NetCore
 
         private void Copy32(byte[] source, byte[] destination)
         {
-            Array.Copy(source, 0, destination, 0, 32);
+            var sourceSpan = source.AsSpan(0, KeySize);
+            var destinationSpan = destination.AsSpan(0, KeySize);
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                MemoryMarshal.Cast<byte, Vector256<byte>>(destinationSpan)[0] = MemoryMarshal.Cast<byte, Vector256<byte>>(sourceSpan)[0];
+                return;
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                var sourceVectors = MemoryMarshal.Cast<byte, Vector128<byte>>(sourceSpan);
+                var destinationVectors = MemoryMarshal.Cast<byte, Vector128<byte>>(destinationSpan);
+                destinationVectors[0] = sourceVectors[0];
+                destinationVectors[1] = sourceVectors[1];
+                return;
+            }
+
+            sourceSpan.CopyTo(destinationSpan);
         }
 
         /* p[m..n+m-1] = q[m..n+m-1] + z * x */
