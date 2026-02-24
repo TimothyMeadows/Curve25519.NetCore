@@ -14,10 +14,11 @@
  */
 
 using System;
+using System.Security.Cryptography;
 
 namespace Curve25519.NetCore
 {
-    public class Curve25519
+    public sealed class Curve25519
     {
         /// <summary>
         /// Smallest multiple of the order that's >= 2^255
@@ -60,15 +61,35 @@ namespace Curve25519.NetCore
 
         /********* KEY AGREEMENT *********/
 
+        private static void ValidatePrivateKey(byte[] privateKey)
+        {
+            ArgumentNullException.ThrowIfNull(privateKey);
+            if (privateKey.Length != KeySize)
+            {
+                throw new ArgumentException($"Private key must be {KeySize} bytes long (but was {privateKey.Length} bytes long).", nameof(privateKey));
+            }
+        }
+
+        private static void ValidatePublicKey(byte[] publicKey)
+        {
+            ArgumentNullException.ThrowIfNull(publicKey);
+            if (publicKey.Length != KeySize)
+            {
+                throw new ArgumentException($"Public key must be {KeySize} bytes long (but was {publicKey.Length} bytes long).", nameof(publicKey));
+            }
+        }
+
         /// <summary>
         /// Private key clamping (inline, for performance)
         /// </summary>
         /// <param name="key">[out] 32 random bytes</param>
         public void ClampPrivateKeyInline(byte[] key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
-            if (key.Length != 32) throw new ArgumentException(
-                $"key must be 32 bytes long (but was {key.Length} bytes long)");
+            ArgumentNullException.ThrowIfNull(key);
+            if (key.Length != KeySize)
+            {
+                throw new ArgumentException($"key must be {KeySize} bytes long (but was {key.Length} bytes long).", nameof(key));
+            }
 
             key[31] &= 0x7F;
             key[31] |= 0x40;
@@ -81,12 +102,14 @@ namespace Curve25519.NetCore
         /// <param name="rawKey">[out] 32 random bytes</param>
         public byte[] ClampPrivateKey(byte[] rawKey)
         {
-            if (rawKey == null) throw new ArgumentNullException(nameof(rawKey));
-            if (rawKey.Length != 32) throw new ArgumentException(
-                $"rawKey must be 32 bytes long (but was {rawKey.Length} bytes long)", nameof(rawKey));
+            ArgumentNullException.ThrowIfNull(rawKey);
+            if (rawKey.Length != KeySize)
+            {
+                throw new ArgumentException($"rawKey must be {KeySize} bytes long (but was {rawKey.Length} bytes long).", nameof(rawKey));
+            }
 
-            var res = new byte[32];
-            Array.Copy(rawKey, res, 32);
+            var res = new byte[KeySize];
+            Array.Copy(rawKey, res, KeySize);
 
             res[31] &= 0x7F;
             res[31] |= 0x40;
@@ -101,8 +124,8 @@ namespace Curve25519.NetCore
         /// <returns>32 random bytes that are clamped to a suitable private key</returns>
         public byte[] CreateRandomPrivateKey()
         {
-            var privateKey = new byte[32];
-            using var rng = new SecureRandom.NetCore.SecureRandom(20);
+            var privateKey = new byte[KeySize];
+            using var rng = new SecureRandom.NetCore.SecureRandom();
             rng.NextBytes(privateKey);
 
             ClampPrivateKeyInline(privateKey);
@@ -115,7 +138,9 @@ namespace Curve25519.NetCore
         /// <param name="privateKey">private key (must use ClampPrivateKey first!)</param>
         public byte[] GetPublicKey(byte[] privateKey)
         {
-            var publicKey = new byte[32];
+            ValidatePrivateKey(privateKey);
+
+            var publicKey = new byte[KeySize];
 
             Core(publicKey, null, privateKey, null);
             return publicKey;
@@ -127,8 +152,10 @@ namespace Curve25519.NetCore
         /// <param name="privateKey">private key (must use ClampPrivateKey first!)</param>
         public byte[] GetSigningKey(byte[] privateKey)
         {
-            var signingKey = new byte[32];
-            var publicKey = new byte[32];
+            ValidatePrivateKey(privateKey);
+
+            var signingKey = new byte[KeySize];
+            var publicKey = new byte[KeySize];
 
             Core(publicKey, signingKey, privateKey, null);
             return signingKey;
@@ -142,9 +169,19 @@ namespace Curve25519.NetCore
         /// <returns>shared secret (needs hashing before use)</returns>
         public byte[] GetSharedSecret(byte[] privateKey, byte[] peerPublicKey)
         {
-            var sharedSecret = new byte[32];
+            ValidatePrivateKey(privateKey);
+            ValidatePublicKey(peerPublicKey);
+
+            var sharedSecret = new byte[KeySize];
 
             Core(sharedSecret, null, privateKey, peerPublicKey);
+
+            Span<byte> allZeros = stackalloc byte[KeySize];
+            if (CryptographicOperations.FixedTimeEquals(sharedSecret, allZeros))
+            {
+                throw new CryptographicException("Derived shared secret is all zeros. Rejecting per RFC 7748 guidance.");
+            }
+
             return sharedSecret;
         }
 
@@ -796,7 +833,7 @@ namespace Curve25519.NetCore
         /// <summary>
         /// P = kG   and  s = sign(P)/k
         /// </summary>
-        private void Core(byte[] publicKey, byte[] signingKey, byte[] privateKey, byte[] peerPublicKey)
+        private void Core(byte[] publicKey, byte[]? signingKey, byte[] privateKey, byte[]? peerPublicKey)
         {
             if (publicKey == null) throw new ArgumentNullException(nameof(publicKey));
             if (publicKey.Length != 32) throw new ArgumentException(
