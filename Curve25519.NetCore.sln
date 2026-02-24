@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Curve25519.NetCore", "Curve
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Curve25519.NetCore.Examples", "Curve25519.NetCore.Examples\Curve25519.NetCore.Examples.csproj", "{5F638981-523B-4172-8E6D-56747C26D8CC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Curve25519.NetCore.Tests", "Curve25519.NetCore.Tests\Curve25519.NetCore.Tests.csproj", "{D0EEE838-CE5A-4042-9297-31FDCB6ABFDB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{5F638981-523B-4172-8E6D-56747C26D8CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5F638981-523B-4172-8E6D-56747C26D8CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5F638981-523B-4172-8E6D-56747C26D8CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D0EEE838-CE5A-4042-9297-31FDCB6ABFDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0EEE838-CE5A-4042-9297-31FDCB6ABFDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0EEE838-CE5A-4042-9297-31FDCB6ABFDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0EEE838-CE5A-4042-9297-31FDCB6ABFDB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
